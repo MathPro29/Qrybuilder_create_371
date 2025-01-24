@@ -95,10 +95,10 @@ export default function Index({ employees, query, order }) {
                                         </th>
 
                                         <th
-                                        className="cursor-pointer border border-gray-700 px-4 py-2"
+                                        className="cursor-pointer border border-gray-300 px-4 py-2"
                                         onClick={() => handleSort('photo')}
                                     >
-                                        Photo{''}
+                                        รูป{''}
                                         {sortColumn === 'birth_date' && (sortDirection === 'asc' ? '↑' : '↓')}
                                     </th>
                                     </tr>
@@ -121,7 +121,7 @@ export default function Index({ employees, query, order }) {
                                             <td className="border border-gray-300 px-4 py-2">
                                                 {employee.birth_date}
                                             </td>
-                                            <td className="border-gray-300 px-4 py-3 flex justify-center items-center">
+                                            <td className="border border-gray-300 px-4 py-2 flex justify-center items-center">
                                             {employee.photo ? (
                                                 <img
                                                     src={`/storage/${employee.photo}`}
@@ -129,7 +129,7 @@ export default function Index({ employees, query, order }) {
                                                     className="w-16 h-16 object-cover rounded-full"
                                                 />
                                             ) : (
-                                                'No Image' // แสดงข้อความเมื่อไม่มีภาพ
+                                                'Lost Image' // แสดงข้อความเมื่อไม่มีภาพ
                                             )}
                                         </td>
                                         </tr>
@@ -156,6 +156,12 @@ export default function Index({ employees, query, order }) {
                         Out of data
                     </div>
                 )}
+            </div>
+
+            <div className='footer'>
+                <footer>
+                    hello
+                </footer>
             </div>
         </AuthenticatedLayout>
     );

@@ -38,65 +38,72 @@ class EmployeeController extends Controller
      * Show the form for creating a new resource.
      */
     public function create()
-    {
-        $departments = DB::table('departments')->select('dept_no', 'dept_name')->get();
-         // ดึงข้อมูลจากตาราง departments
-         return Inertia::render('Employee/Create', [
-            'departments' => $departments, ]); // ส่งข้อมูล departments กลับไปยัง React component
-    }
+{
+    // ดึงข้อมูลจากตาราง departments เพื่อใช้ในฟอร์ม
+    $departments = DB::table('departments')->select('dept_no', 'dept_name')->get();
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        // รับข้อมูลจากฟอร์ม พร้อมตรวจสอบความถูกต้อง
-        $validated = $request->validate([
-            "birth_date" => "required|date",
-            "first_name" => "required|string|max:255",
-            "last_name"  => "required|string|max:255",
-            'gender' => 'required|in:M,F',
-            "hire_date"  => "required|date",
-            "dept_no" => "required|exists:departments,dept_no",
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+    // ส่งข้อมูล departments ไปยัง React component Employee/Create ผ่าน Inertia.js
+    return Inertia::render('Employee/Create', [
+        'departments' => $departments,
+    ]);
+}
+
+/**
+ * Store a newly created resource in storage.
+ */
+public function store(Request $request)
+{
+    // รับข้อมูลจากฟอร์มและตรวจสอบความถูกต้องของข้อมูล
+    $validated = $request->validate([
+        "birth_date" => "required|date", // วันเกิดต้องเป็นวันที่และต้องกรอก
+        "first_name" => "required|string|max:14", // ชื่อต้องเป็นข้อความและมีความยาวไม่เกิน 14 ตัวอักษร
+        "last_name"  => "required|string|max:16", // นามสกุลต้องเป็นข้อความและมีความยาวไม่เกิน 16 ตัวอักษร
+        'gender'      => 'required|in:M,F', // เพศต้องเป็น M หรือ F
+        "hire_date"  => "required|date", // วันที่จ้างงานต้องเป็นวันที่และต้องกรอก
+        "dept_no"    => "required|exists:departments,dept_no", // dept_no ต้องมีอยู่ในตาราง departments
+        'photo'       => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // รูปภาพต้องเป็นไฟล์รูปและขนาดไม่เกิน 2MB
+    ]);
 
     try {
-        // ใช้ Database Transaction เพื่อความปลอดภัย
+        // ใช้ Database Transaction เพื่อป้องกันข้อมูลไม่สมบูรณ์
         DB::transaction(function () use ($validated, $request) {
-            // 1. หาค่า emp_no ล่าสุด
+            // 1. ค้นหา emp_no ล่าสุดจากตาราง employees
             $latestEmpNo = DB::table('employees')->max('emp_no') ?? 0;
-            $newEmpNo = $latestEmpNo + 1; // เพิ่มค่า emp_no ทีละ 1
+            $newEmpNo = $latestEmpNo + 1; // เพิ่ม emp_no ทีละ 1
 
-          // อัปโหลดรูปภาพถ้ามีการอัปโหลด
-          if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('employees', 'public');
-            $validated['photo'] = $photoPath;
-        }
+            // 2. ตรวจสอบและอัปโหลดรูปภาพถ้ามีการแนบไฟล์
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('employees', 'public'); // บันทึกไฟล์ใน disk public
+                $validated['photo'] = $photoPath; // เพิ่ม path ของรูปภาพลงในข้อมูลที่ validated
+            }
 
-            // 2. เพิ่มข้อมูลลงในฐานข้อมูลอย่างถูกต้อง
+            // 3. เพิ่มข้อมูลพนักงานใหม่ลงในฐานข้อมูล
             DB::table("employees")->insert([
-                "emp_no"     => $newEmpNo,
-                "first_name" => $validated['first_name'],
-                "last_name"  => $validated['last_name'],
-                "gender"     => $validated['gender'],
-                "birth_date" => $validated['birth_date'],
-                "hire_date"  => $validated['hire_date'],
-                "photo" => $validated['photo'] ?? null,
+                "emp_no"     => $newEmpNo, // หมายเลขพนักงานใหม่
+                "first_name" => $validated['first_name'], // ชื่อ
+                "last_name"  => $validated['last_name'], // นามสกุล
+                "gender"     => $validated['gender'], // เพศ
+                "birth_date" => $validated['birth_date'], // วันเกิด
+                "hire_date"  => $validated['hire_date'], // วันที่จ้างงาน
+                "photo"      => $validated['photo'] ?? null, // รูปภาพ (ถ้ามี)
             ]);
         });
 
-        // ส่งข้อความตอบกลับเมื่อสำเร็จ
+        // ส่งข้อความแจ้งความสำเร็จและเปลี่ยนเส้นทางกลับไปที่หน้ารายชื่อพนักงาน
         return redirect()->route('Employee.Index')->with([
             'success' => 'Employee created successfully.',
         ]);
     } catch (\Exception $e) {
+        // บันทึกข้อผิดพลาดลงใน log
         Log::error('Transaction failed', ['error' => $e->getMessage()]);
-        // ส่งกลับไปยังหน้าเดิมพร้อมแสดง error
-        return Redirect::back()->withErrors(['error' => 'An error occurred while creating employee. Please try again.'])
-                            ->withInput(); // คืนค่าข้อมูลที่กรอกไว้
+
+        // ส่งกลับไปยังหน้าเดิมพร้อมแสดงข้อความผิดพลาด
+        return Redirect::back()->withErrors([
+            'error' => 'An error occurred while creating employee. Please try again.',
+        ])->withInput(); // คืนค่าข้อมูลที่กรอกไว้กลับไปแสดงในฟอร์ม
     }
 }
+
 
     /**
      * Display the specified resource.

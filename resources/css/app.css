@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.react-datepicker-wrapper {
+    width: 100%; /* ให้ DatePicker เต็มความกว้าง */
+}
+
+.react-datepicker__input-container input {
+    width: 100%; /* ให้ input ภายในเต็ม */
+    min-width: 0; /* ป้องกันการบีบตัว */
+}

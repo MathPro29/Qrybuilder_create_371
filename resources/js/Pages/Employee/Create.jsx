@@ -1,130 +1,176 @@
+// Import dependencies
 import { useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { useState } from "react";
 import Swal from "sweetalert2";
 
+
+// Component สำหรับสร้างพนักงานใหม่
 export default function Create({ departments }) {
-    // ใช้ useForm hook สำหรับจัดการฟอร์ม
+    // ใช้ useForm hook สำหรับจัดการ state ของฟอร์ม
     const { data, setData, post, errors } = useForm({
-        birth_date: '',
-        first_name: '',
-        last_name: '',
-        gender: '',
-        hire_date: '',
-        department: '',
-        photo: '',
+        birth_date: '', // วันที่เกิด
+        first_name: '', // ชื่อ
+        last_name: '', // นามสกุล
+        gender: '', // เพศ
+        hire_date: '', // วันที่จ้างงาน
+        department: '', // แผนก
+        photo: '', // รูปภาพ
     });
 
-    // สถานะสำหรับแสดงข้อความเมื่อมีการบันทึกข้อมูลสำเร็จหรือเกิดข้อผิดพลาด
+    // สถานะสำหรับแสดงข้อความสำเร็จหรือข้อผิดพลาด
     const [successMessage, setSuccessMessage] = useState(null);
-
     const [errorMessage, setErrorMessage] = useState(null);
 
-    // ฟังก์ชันสำหรับการส่งข้อมูลไปยัง Backend
-    const handleSubmit = (e) => {
-        e.preventDefault(); // ป้องกันการรีเฟรชหน้าเมื่อกด submit
 
-        // สร้าง FormData เพื่อส่งข้อมูลเป็น multipart/form-data
+    // ฟังก์ชันสำหรับส่งข้อมูลฟอร์มไปยัง backend
+    const handleSubmit = (e) => {
+        e.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บเมื่อกด submit
+
+            // ตรวจสอบว่าข้อมูลครบหรือไม่
+    if (!data.first_name || !data.last_name || !data.gender || !data.birth_date || !data.hire_date || !data.dept_no) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'กรอกข้อมูลไม่ครบถ้วน',
+            text: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+            confirmButtonText: 'ดำเนินการต่อ',
+        });
+        return; // หยุดการทำงานถ้าข้อมูลไม่ครบ
+    }
+
+        // สร้าง FormData เพื่อส่งข้อมูลแบบ multipart/form-data
         const formData = new FormData();
         formData.append('first_name', data.first_name);
         formData.append('last_name', data.last_name);
         formData.append('gender', data.gender);
-        formData.append('hire_date', data.hire_date);
         formData.append('birth_date', data.birth_date);
+        formData.append('hire_date', data.hire_date);
         formData.append('department', data.department);
 
-        // ถ้ามีไฟล์รูปภาพ จะส่งไฟล์นั้นไปด้วย
+        // หากมีไฟล์รูปภาพ จะเพิ่มไฟล์ลงใน FormData
         if (data.photo) {
             formData.append('photo', data.photo);
         }
 
-        // ส่งข้อมูลไปยัง route 'employees.store'
+        // ส่งข้อมูลไปยัง backend ผ่าน route ที่กำหนดไว้
         post(route('employees.store'), {
-            data: formData,  // ส่งข้อมูลฟอร์มไปยังเซิร์ฟเวอร์
+            data: formData, // ส่งข้อมูลที่เตรียมไว้
             headers: {
-                'Content-Type': 'multipart/form-data',  // กำหนดประเภทของข้อมูลเป็น multipart/form-data เพื่อรองรับไฟล์อัปโหลด
+                'Content-Type': 'multipart/form-data', // กำหนด header เป็น multipart/form-data
             },
             onSuccess: () => {
+                // แสดงข้อความสำเร็จด้วย SweetAlert
                 Swal.fire({
                     icon: "success",
                     title: "สำเร็จ!",
-                    text: "เพิ่มพนักงานสำเร็จ!",
+                    text: "พนักงานอยู่ในรายชื่อแล้ว",
+                    confirmButtonText: 'ดำเนินการต่อ',
                 });
-                setSuccessMessage("Employee created successfully!");
+                setSuccessMessage("Employee created successfully!"); // เก็บข้อความสำเร็จใน state
             },
-            onError: () => {
+            onError: (err) => {
+                console.error("Error response:", err); // แสดงข้อผิดพลาดใน Console เพื่อช่วย Debug
                 setErrorMessage("An error occurred while creating employee. Please try again.");
-                setTimeout(() => setErrorMessage(null), 3000);  // ลบข้อความแจ้งเตือนหลังจาก 3 วินาที
+                // ลบข้อความข้อผิดพลาดหลังจาก 3 วินาที
+                setTimeout(() => setErrorMessage(null), 3000);
             }
         });
     };
 
     return (
         <AuthenticatedLayout>
-            {/* Success/Error Messages */}
+            {/* แสดงข้อความสำเร็จหรือข้อผิดพลาด */}
             {successMessage && (
                 <div className="mb-4 p-4 bg-green-100 text-green-700 rounded">
-                    {successMessage} {/* แสดงข้อความสำเร็จ */}
+                    {successMessage} {/* ข้อความสำเร็จ */}
                 </div>
             )}
             {errorMessage && (
                 <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
-                    {errorMessage} {/* แสดงข้อความข้อผิดพลาด */}
+                    {errorMessage} {/* ข้อความข้อผิดพลาด */}
                 </div>
             )}
-            <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold mb-6">Create Employee</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="first_name">
+
+            {/* ฟอร์มสำหรับสร้างพนักงาน */}
+            <div className="container mx-auto my-8 p-6 max-w-lg bg-white shadow-lg rounded-lg">
+                <h2 className="text-2xl font-semibold text-center mb-4 text-gray-800">
+                    Create Employee
+                </h2>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* ช่องกรอกชื่อ */}
+                    <div>
+                        <label
+                            htmlFor="first_name"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                             First Name
                         </label>
                         <input
+
                             type="text"
                             value={data.first_name}
                             onChange={(e) => setData('first_name', e.target.value)}
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Enter first name"
                         />
                         {errors.first_name && (
-                            <span className="text-red-500 text-sm">{errors.first_name}</span>
+                            <p className="text-sm text-red-500 mt-1">{errors.first_name}</p>
                         )}
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="last_name">
+
+                    {/* ช่องกรอกนามสกุล */}
+                    <div>
+                        <label
+                            htmlFor="last_name"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                             Last Name
                         </label>
                         <input
+
                             type="text"
                             value={data.last_name}
                             onChange={(e) => setData('last_name', e.target.value)}
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Enter last name"
                         />
                         {errors.last_name && (
-                            <span className="text-red-500 text-sm">{errors.last_name}</span>
+                            <p className="text-sm text-red-500 mt-1">{errors.last_name}</p>
                         )}
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="gender">
+
+                    {/* ช่องเลือกเพศ */}
+                    <div>
+                        <label
+                            htmlFor="gender"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                             Gender
                         </label>
                         <select
+
                             id="gender"
                             value={data.gender}
                             onChange={(e) => setData('gender', e.target.value)}
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         >
-                            <option value="">Select Gender</option>
+                            <option value="" disabled>
+                                Select Gender
+                            </option>
                             <option value="M">Male</option>
                             <option value="F">Female</option>
                         </select>
                         {errors.gender && (
-                            <span className="text-red-500 text-sm">{errors.gender}</span>
+                            <p className="text-sm text-red-500 mt-1">{errors.gender}</p>
                         )}
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="birth_date">
+
+                    {/* ช่องกรอกวันเกิด */}
+                    <div>
+                        <label
+                            htmlFor="birth_date"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                             Birth Date
                         </label>
                         <input
@@ -134,12 +180,16 @@ export default function Create({ departments }) {
                             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                         />
                         {errors.birth_date && (
-                            <span className="text-red-500 text-sm">{errors.birth_date}</span>
+                            <p className="text-sm text-red-500 mt-1">{errors.birth_date}</p>
                         )}
                     </div>
 
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="hire_date">
+                    {/* ช่องกรอกวันเข้าทำงาน */}
+                    <div>
+                        <label
+                            htmlFor="hire_date"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                             Hire Date
                         </label>
                         <input
@@ -149,26 +199,36 @@ export default function Create({ departments }) {
                             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                         />
                         {errors.hire_date && (
-                            <span className="text-red-500 text-sm">{errors.hire_date}</span>
+                            <p className="text-sm text-red-500 mt-1">{errors.hire_date}</p>
                         )}
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="dept_no">
+
+                    {/* ช่องเลือกแผนก */}
+                    <div>
+                        <label
+                            htmlFor="dept_no"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                             Department
                         </label>
                         <select
+
                             value={data.dept_no}
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             onChange={(e) => {
-                                const selectedDept = departments.find(dept => dept.dept_no === e.target.value);
+                                const selectedDept = departments.find(
+                                    (dept) => dept.dept_no === e.target.value
+                                );
                                 setData({
                                     ...data,
-                                    dept_no: e.target.value, // รหัสแผนก
-                                    department: selectedDept ? selectedDept.dept_name : '', // ชื่อแผนก
+                                    dept_no: e.target.value,
+                                    department: selectedDept ? selectedDept.dept_name : '',
                                 });
                             }}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         >
-                            <option value="">Select Department</option>
+                            <option value="" disabled>
+                                Select Department
+                            </option>
                             {departments.map((dept) => (
                                 <option key={dept.dept_no} value={dept.dept_no}>
                                     {dept.dept_name}
@@ -176,30 +236,39 @@ export default function Create({ departments }) {
                             ))}
                         </select>
                         {errors.dept_no && (
-                            <span className="text-red-500 text-sm">{errors.dept_no}</span>
+                            <p className="text-sm text-red-500 mt-1">{errors.dept_no}</p>
                         )}
                     </div>
-                    {/* Photo Upload */}
+
+                    {/* ช่องอัปโหลดรูปภาพ */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Photo:</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Photo
+                        </label>
                         <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => setData('photo', e.target.files[0])} // อัปเดตค่า photo
-                            className="mt-1 p-2 block w-full border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            onChange={(e) => setData('photo', e.target.files[0])}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         />
-                        {errors.photo && <span className="text-red-500 text-sm">{errors.photo}</span>} {/* แสดงข้อผิดพลาด */}
+                        {errors.photo && (
+                            <p className="text-sm text-red-500 mt-1">{errors.photo}</p>
+                        )}
                     </div>
-                    <div className="flex items-center justify-between">
+
+                    {/* ปุ่ม Submit */}
+                    <div>
                         <button
                             type="submit"
-                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
                         >
-                            Create Employee
+                            + Create Employee
                         </button>
+
                     </div>
                 </form>
             </div>
+
         </AuthenticatedLayout>
     );
 };
